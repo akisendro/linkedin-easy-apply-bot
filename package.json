@@ -1,7 +1,6 @@
 {
   "name": "linkedin-easy-apply-bot",
   "version": "1.0.0",
-  "description": "🔗 Auto–apply to LinkedIn Easy Apply jobs, triggered by Telegram or on a schedule",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,7 +8,7 @@
   "dependencies": {
     "dotenv": "^16.0.0",
     "node-cron": "^3.0.0",
-    "telegraf": "^4.12.2",
-    "puppeteer": "^24.1.1"
+    "puppeteer": "^24.1.1",
+    "node-telegram-bot-api": "^0.61.0"
   }
 }
