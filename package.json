@@ -9,7 +9,7 @@
   "dependencies": {
     "dotenv": "^16.0.0",
     "node-cron": "^3.0.0",
-    "puppeteer-core": "^20.7.2",
-    "telegraf": "^4.12.2"
+    "telegraf": "^4.12.2",
+    "puppeteer": "^24.1.1"
   }
 }
