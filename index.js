@@ -1,38 +1,77 @@
 require('dotenv').config();
-const { Telegraf } = require('telegraf');
+const puppeteer = require('puppeteer');
 const cron = require('node-cron');
-const runEasyApply = require('./easy-apply'); // your existing apply logic
+const { triggerTelegram } = require('./telegram');
 
-const bot = new Telegraf(process.env.TG_BOT_TOKEN);
+async function runEasyApply() {
+  const LI_AT = process.env.LI_AT;
+  const keyword = process.env.JOB_KEYWORD;
+  const resumePath = process.env.RESUME_PATH;
 
-// Telegram command handler
-bot.command('apply', async ctx => {
-  await ctx.reply('🤖 Running Easy Apply…');
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox','--disable-setuid-sandbox'],
+  });
+  const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(60000);
+  page.setDefaultTimeout(60000);
+
+  await page.setCookie({ name: 'li_at', value: LI_AT, domain: '.linkedin.com' });
+
+  const searchUrl =
+    `https://www.linkedin.com/jobs/search/`
+    + `?keywords=${encodeURIComponent(keyword)}`
+    + `&f_AL=true`
+    + `&f_WT=2`
+    + `&sortBy=DD`;
+  await page.goto(searchUrl, { waitUntil: 'networkidle2' });
+
+  const jobLinks = await page.$$eval(
+    '.jobs-search-results__list-item a.result-card__full-card-link',
+    els => els.map(a => a.href).slice(0, 10)
+  );
+
+  let appliedCount = 0;
+  for (let url of jobLinks) {
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    const btn = await page.$('button.jobs-apply-button');
+    if (btn) {
+      await btn.click();
+      await page.waitForSelector('input[type="file"]', { timeout: 5000 });
+      await (await page.$('input[type="file"]')).uploadFile(resumePath);
+      await page.click('button[aria-label="Submit application"]');
+      appliedCount++;
+      await page.waitForTimeout(2000);
+    }
+  }
+
+  await browser.close();
+  return appliedCount;
+}
+
+// 1) Initial run right now
+(async () => {
+  console.log('🕒 Initial run triggered');
   try {
     const count = await runEasyApply();
-    await ctx.reply(`✅ Applied to ${count} job${count === 1 ? '' : 's'}.`);
-  } catch (err) {
-    console.error('Error in /apply:', err);
-    await ctx.reply(`❌ Oops! ${err.message}`);
+    console.log(`✅ Initial run applied to ${count} job${count===1?'':'s'}.`);
+  } catch (e) {
+    console.error('❌ Initial run error:', e);
   }
+})();
+
+// 2) Manual trigger via Telegram
+triggerTelegram(async () => {
+  const count = await runEasyApply();
+  return `✅ Applied to ${count} job${count===1?'':'s'}.`;
 });
 
-// Schedule a run every 20 minutes
+// 3) Cron schedule: every 20 minutes after that
 cron.schedule('*/20 * * * *', async () => {
   console.log('🕒 Scheduled run triggered');
   try {
     const count = await runEasyApply();
-    console.log(`✅ Scheduled applied to ${count} job${count === 1 ? '' : 's'}.`);
-  } catch (err) {
-    console.error('Scheduled run error:', err);
+    console.log(`✅ Scheduled applied to ${count} job${count===1?'':'s'}.`);
+  } catch (e) {
+    console.error('❌ Scheduled run error:', e);
   }
 });
-
-// Start the bot
-bot.launch().then(() => {
-  console.log('🤖 Telegram bot up and running');
-});
-
-// Graceful shutdown
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
