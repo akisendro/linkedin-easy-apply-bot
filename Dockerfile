@@ -8,7 +8,7 @@ RUN npm install
 # Copy code + resume
 COPY . .
 
-# Puppeteer dependencies
+# Puppeteer dependencies (including libgbm1!)
 RUN apt-get update && \
     apt-get install -yq \
       gconf-service libasound2 libatk1.0-0 libc6 \
@@ -17,7 +17,7 @@ RUN apt-get update && \
       libgtk-3-0 libnspr4 libpango-1.0-0 libx11-6 libx11-xcb1 \
       libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
       libxrandr2 libxrender1 libxss1 libxtst6 \
-      libgbm1 \
+      **libgbm1** \
       ca-certificates fonts-liberation libnss3 lsb-release \
       xdg-utils wget && \
     rm -rf /var/lib/apt/lists/*
