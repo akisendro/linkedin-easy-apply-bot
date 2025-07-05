@@ -2,12 +2,11 @@ FROM node:18-bullseye-slim
 
 # Install dependencies
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 # Copy code + resume
 COPY . .
-# (Place your PDF at ./resume/Mohd_Fakhri_Resume_PM.pdf)
 
 # Puppeteer deps
 RUN apt-get update && \
@@ -21,7 +20,7 @@ RUN apt-get update && \
       fonts-liberation libnss3 lsb-release xdg-utils wget && \
     rm -rf /var/lib/apt/lists/*
 
-# Expose port for Telegram webhooks (optional)
+# Expose port (optional for webhooks)
 EXPOSE 8443
 
 CMD ["node", "index.js"]
